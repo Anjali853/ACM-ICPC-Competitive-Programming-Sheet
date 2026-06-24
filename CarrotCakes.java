@@ -13,10 +13,10 @@ public class CarrotCakes {
         int singleTime = batches * t;
        for(int time = 1; time < singleTime; time++) {
 
-    int cakes = (time / t) * k;   // Oven 1
+    int cakes = (time / t) * k;   
 
     if(time > d) {
-        cakes += ((time - d) / t) * k;   // Oven 2
+        cakes += ((time - d) / t) * k;   
     }
 
     if(cakes >= n) {
