@@ -1,0 +1,6 @@
+/**
+ * Sanner
+ */
+public class Sanner {
+
+}
