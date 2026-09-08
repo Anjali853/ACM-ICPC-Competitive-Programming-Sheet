@@ -4,7 +4,8 @@ public class Pangram {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         int n = sc.nextInt();
-        String input = sc.next();
+        sc.nextLine(); // Consume the newline character
+        String input = sc.nextLine();
         boolean[] seen = new boolean[26];
         for (char c : input.toLowerCase().toCharArray()) {
             if (c >= 'a' && c <= 'z') {
