@@ -1,47 +1,229 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class FormingTeams {
+
     static int n, m;
-    static List<Integer>[] graph;
-    static int[] color;
+    static ArrayList<Integer>[] graph;
     static boolean[] visited;
 
-    static class Component {
-        int zero;
-        int one;
+    // State:
+    // -1 = Team 1
+    //  0 = Bench
+    // +1 = Team 2
 
-        Component(int zero, int one) {
-            this.zero = zero;
-            this.one = one;
+    static boolean compatible(int prev, int cur) {
+        // If one of them is on bench, no problem.
+        if (prev == 0 || cur == 0) {
+            return true;
         }
+
+       
+        return prev != cur;
     }
+    static HashMap<Integer, Integer> solveComponent(ArrayList<Integer> order,
+                                                     boolean isCycle) {
 
-    static boolean bipartite;
-    static int cnt0, cnt1;
+        HashMap<Integer, Integer> result = new HashMap<>();
 
-    static void dfs(int node) {
-        visited[node] = true;
+        if (!isCycle) {
 
-        if (color[node] == 0) {
-            cnt0++;
+            // dp[lastState][difference] = maximum selected students
+            int[][] dp = new int[3][2 * n + 1];
+
+            for (int[] row : dp) {
+                Arrays.fill(row, -1000000);
+            }
+
+            dp[1][n] = 0;
+
+            for (int i = 0; i < order.size(); i++) {
+
+                int[][] next = new int[3][2 * n + 1];
+
+                for (int[] row : next) {
+                    Arrays.fill(row, -1000000);
+                }
+
+                for (int prev = 0; prev < 3; prev++) {
+
+                    int prevValue = prev - 1;
+
+                    for (int diffIndex = 0;
+                         diffIndex <= 2 * n;
+                         diffIndex++) {
+
+                        if (dp[prev][diffIndex] < 0) {
+                            continue;
+                        }
+
+                        for (int cur = 0; cur < 3; cur++) {
+
+                            int curValue = cur - 1;
+
+                            if (!compatible(prevValue, curValue)) {
+                                continue;
+                            }
+
+                            int newDiff =
+                                    diffIndex + curValue;
+
+                            if (newDiff < 0 || newDiff > 2 * n) {
+                                continue;
+                            }
+
+                            int selected =
+                                    dp[prev][diffIndex]
+                                    + (curValue != 0 ? 1 : 0);
+
+                            next[cur][newDiff] =
+                                    Math.max(
+                                            next[cur][newDiff],
+                                            selected
+                                    );
+                        }
+                    }
+                }
+
+                dp = next;
+            }
+
+            for (int last = 0; last < 3; last++) {
+
+                for (int diffIndex = 0;
+                     diffIndex <= 2 * n;
+                     diffIndex++) {
+
+                    int value = dp[last][diffIndex];
+
+                    if (value < 0) {
+                        continue;
+                    }
+
+                    int difference = diffIndex - n;
+
+                    result.put(
+                            difference,
+                            Math.max(
+                                    result.getOrDefault(difference, -1000000),
+                                    value
+                            )
+                    );
+                }
+            }
+
         } else {
-            cnt1++;
-        }
 
-        for (int next : graph[node]) {
-            if (!visited[next]) {
-                color[next] = 1 - color[node];
-                dfs(next);
-            } else if (color[next] == color[node]) {
-                bipartite = false;
+        
+            for (int firstValue = -1;
+                 firstValue <= 1;
+                 firstValue++) {
+
+                int[][] dp = new int[3][2 * n + 1];
+
+                for (int[] row : dp) {
+                    Arrays.fill(row, -1000000);
+                }
+
+                int firstState = firstValue + 1;
+
+                dp[firstState][n + firstValue] =
+                        firstValue != 0 ? 1 : 0;
+
+                // Process remaining vertices
+                for (int i = 1; i < order.size(); i++) {
+
+                    int[][] next =
+                            new int[3][2 * n + 1];
+
+                    for (int[] row : next) {
+                        Arrays.fill(row, -1000000);
+                    }
+
+                    for (int prev = 0; prev < 3; prev++) {
+
+                        int prevValue = prev - 1;
+
+                        for (int diffIndex = 0;
+                             diffIndex <= 2 * n;
+                             diffIndex++) {
+
+                            if (dp[prev][diffIndex] < 0) {
+                                continue;
+                            }
+
+                            for (int cur = 0; cur < 3; cur++) {
+
+                                int curValue = cur - 1;
+
+                                if (!compatible(prevValue, curValue)) {
+                                    continue;
+                                }
+
+                                int newDiff =
+                                        diffIndex + curValue;
+
+                                if (newDiff < 0 ||
+                                    newDiff > 2 * n) {
+                                    continue;
+                                }
+
+                                int selected =
+                                        dp[prev][diffIndex]
+                                        + (curValue != 0 ? 1 : 0);
+
+                                next[cur][newDiff] =
+                                        Math.max(
+                                                next[cur][newDiff],
+                                                selected
+                                        );
+                            }
+                        }
+                    }
+
+                    dp = next;
+                }
+
+                for (int last = 0; last < 3; last++) {
+
+                    int lastValue = last - 1;
+
+                    if (!compatible(firstValue, lastValue)) {
+                        continue;
+                    }
+
+                    for (int diffIndex = 0;
+                         diffIndex <= 2 * n;
+                         diffIndex++) {
+
+                        int value = dp[last][diffIndex];
+
+                        if (value < 0) {
+                            continue;
+                        }
+
+                        int difference =
+                                diffIndex - n;
+
+                        result.put(
+                                difference,
+                                Math.max(
+                                        result.getOrDefault(
+                                                difference,
+                                                -1000000
+                                        ),
+                                        value
+                                )
+                        );
+                    }
+                }
             }
         }
+
+        return result;
     }
 
     public static void main(String[] args) {
+
         Scanner sc = new Scanner(System.in);
 
         n = sc.nextInt();
@@ -54,6 +236,7 @@ public class FormingTeams {
         }
 
         for (int i = 0; i < m; i++) {
+
             int a = sc.nextInt() - 1;
             int b = sc.nextInt() - 1;
 
@@ -61,117 +244,186 @@ public class FormingTeams {
             graph[b].add(a);
         }
 
-        color = new int[n];
         visited = new boolean[n];
 
-        Arrays.fill(color, -1);
+        /*
+         * globalDP[difference] =
+         * maximum students selected so far
+         */
+        HashMap<Integer, Integer> globalDP =
+                new HashMap<>();
 
-        List<Component> components = new ArrayList<>();
+        globalDP.put(0, 0);
 
-        int removed = 0;
+        for (int start = 0; start < n; start++) {
 
-        // Find connected components
-        for (int i = 0; i < n; i++) {
-
-            if (visited[i]) {
+            if (visited[start]) {
                 continue;
             }
 
-            cnt0 = 0;
-            cnt1 = 0;
-            bipartite = true;
+            // Find component
+            ArrayList<Integer> component =
+                    new ArrayList<>();
 
-            color[i] = 0;
-            dfs(i);
+            Stack<Integer> stack = new Stack<>();
+            stack.push(start);
+            visited[start] = true;
 
-            if (!bipartite) {
-                // Odd cycle.
-                // Remove one student.
-                removed++;
-            } else {
-                components.add(new Component(cnt0, cnt1));
-            }
-        }
+            while (!stack.isEmpty()) {
 
-        /*
-         * DP:
-         * dp[x] = maximum number of students that can be placed
-         *         in Team 1 such that the total number of used
-         *         students is balanced as much as possible.
-         *
-         * Easier approach:
-         * We need to choose orientation of every component.
-         */
+                int u = stack.pop();
 
-        boolean[][] dp = new boolean[components.size() + 1][n + 1];
-        dp[0][0] = true;
+                component.add(u);
 
-        int total = 0;
+                for (int v : graph[u]) {
 
-        for (int i = 0; i < components.size(); i++) {
-
-            Component c = components.get(i);
-
-            int a = c.zero;
-            int b = c.one;
-
-            total += a + b;
-
-            for (int x = 0; x <= n; x++) {
-
-                if (!dp[i][x]) {
-                    continue;
-                }
-
-                // Put color 0 into Team 1
-                if (x + a <= n) {
-                    dp[i + 1][x + a] = true;
-                }
-
-                // Put color 1 into Team 1
-                if (x + b <= n) {
-                    dp[i + 1][x + b] = true;
+                    if (!visited[v]) {
+                        visited[v] = true;
+                        stack.push(v);
+                    }
                 }
             }
-        }
 
-        /*
-         * Find the largest even number of students that can be
-         * divided equally.
-         */
-        int best = 0;
-
-        for (int team1 = 0; team1 <= total; team1++) {
-
-            if (!dp[components.size()][team1]) {
-                continue;
-            }
-
-            int team2 = total - team1;
-
-            if (team1 == team2) {
-                best = total;
-                break;
-            }
-        }
-
-        /*
-         * Odd cycles need one student removed each.
-         * If the remaining students can be balanced, count those.
-         */
-        if (removed > 0) {
             /*
-             * Since each odd cycle loses one student,
-             * the remaining graph is bipartite.
-             *
-             * For this problem's degree <= 2 constraint,
-             * removing one vertex from every odd cycle is sufficient.
+             * Build an ordered path/cycle.
              */
-            total += 0; // kept for clarity
+
+            ArrayList<Integer> order =
+                    new ArrayList<>();
+
+            boolean isCycle = true;
+
+            if (component.size() == 1) {
+
+                order.add(component.get(0));
+                isCycle = false;
+
+            } else {
+
+                // A cycle has every vertex degree 2.
+                for (int u : component) {
+
+                    if (graph[u].size() != 2) {
+                        isCycle = false;
+                        break;
+                    }
+                }
+
+                if (isCycle) {
+
+                    // Start from any vertex
+                    int first = component.get(0);
+
+                    order.add(first);
+
+                    int prev = -1;
+                    int cur = first;
+
+                    while (true) {
+
+                        int next;
+
+                        if (graph[cur].get(0) != prev) {
+                            next = graph[cur].get(0);
+                        } else {
+                            next = graph[cur].get(1);
+                        }
+
+                        if (next == first) {
+                            break;
+                        }
+
+                        order.add(next);
+
+                        prev = cur;
+                        cur = next;
+                    }
+
+                } else {
+
+                    // Path: start from an endpoint
+                    int endpoint = -1;
+
+                    for (int u : component) {
+
+                        if (graph[u].size() <= 1) {
+                            endpoint = u;
+                            break;
+                        }
+                    }
+
+                    int prev = -1;
+                    int cur = endpoint;
+
+                    while (true) {
+
+                        order.add(cur);
+
+                        int next = -1;
+
+                        for (int v : graph[cur]) {
+
+                            if (v != prev) {
+                                next = v;
+                                break;
+                            }
+                        }
+
+                        if (next == -1) {
+                            break;
+                        }
+
+                        prev = cur;
+                        cur = next;
+                    }
+                }
+            }
+
+            // DP for this component
+            HashMap<Integer, Integer> componentDP =
+                    solveComponent(order, isCycle);
+
+            // Merge with global DP
+            HashMap<Integer, Integer> newGlobal =
+                    new HashMap<>();
+
+            for (Map.Entry<Integer, Integer> e1
+                    : globalDP.entrySet()) {
+
+                int diff1 = e1.getKey();
+                int selected1 = e1.getValue();
+
+                for (Map.Entry<Integer, Integer> e2
+                        : componentDP.entrySet()) {
+
+                    int diff2 = e2.getKey();
+                    int selected2 = e2.getValue();
+
+                    int newDiff = diff1 + diff2;
+
+                    int newSelected =
+                            selected1 + selected2;
+
+                    newGlobal.put(
+                            newDiff,
+                            Math.max(
+                                    newGlobal.getOrDefault(
+                                            newDiff,
+                                            -1000000
+                                    ),
+                                    newSelected
+                            )
+                    );
+                }
+            }
+
+            globalDP = newGlobal;
         }
 
-        // Recalculate with removed students.
-        int answer = n - (best + removed);
+        // Difference must be 0 => equal teams
+        int maximumStudents = globalDP.get(0);
+
+        int answer = n - maximumStudents;
 
         System.out.println(answer);
     }
